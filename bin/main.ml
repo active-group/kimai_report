@@ -216,7 +216,7 @@ let ignore_project_names =
      If not given, all projects are included. If given more than once, does \
      not include all the given projects."
   in
-  C.Arg.(value @@ opt_all string [] @@ info [ "project" ] ~doc)
+  C.Arg.(value @@ opt_all string [] @@ info [ "exclude-project" ] ~doc)
 ;;
 
 let percentage_t =
