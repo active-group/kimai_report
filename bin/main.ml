@@ -85,6 +85,26 @@ let working_time
     else ()
 ;;
 
+let time_punch
+  api_url
+  api_user
+  api_pwd
+  begin_date
+  end_date
+  emit_column_headers
+  project_names
+  =
+  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module R = K.Repo.Cohttp (RC) in
+  match
+    K.Report.Time_punch.exec ~project_names (module R) begin_date end_date
+    |> Lwt_main.run
+  with
+  | Error err -> prerr_endline @@ "Error: " ^ err
+  | Ok time_punch ->
+    K.Report.Time_punch.print_csv emit_column_headers time_punch
+;;
+
 let record
   api_url
   api_user
@@ -256,6 +276,24 @@ let working_time_cmd =
   C.Cmd.v info working_time_t
 ;;
 
+let time_punch_t =
+  C.Term.(
+    const time_punch
+    $ api_url
+    $ api_user
+    $ api_pwd
+    $ begin_date
+    $ end_date
+    $ emit_column_headers
+    $ ignore_project_names)
+;;
+
+let time_punch_cmd =
+  let doc = "Generate a time-punch sheet." in
+  let info = C.Cmd.info "time_punch" ~doc in
+  C.Cmd.v info time_punch_t
+;;
+
 let port =
   let doc = "The port on which the webserver should listen" in
   C.Arg.(value @@ opt int 8080 @@ info [ "port" ] ~doc)
@@ -325,7 +363,13 @@ let main_cmd =
   let info = C.Cmd.info "kimai_report" ~doc in
   C.Cmd.group
     info
-    [ timesheet_cmd; percentage_cmd; working_time_cmd; server_cmd; record_cmd ]
+    [ timesheet_cmd
+    ; percentage_cmd
+    ; working_time_cmd
+    ; time_punch_cmd
+    ; server_cmd
+    ; record_cmd
+    ]
 ;;
 
 let main () = exit (C.Cmd.eval main_cmd)

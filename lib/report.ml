@@ -306,3 +306,96 @@ module Working_time = struct
     working_time |> overall_duration |> Printf.eprintf "Overall hours:\n%.2f"
   ;;
 end
+
+module Time_punch = struct
+  type t =
+    { date : string
+    ; start_time : string
+    ; end_time : string
+    }
+
+  let date { date; _ } = date
+  let start_time { start_time; _ } = start_time
+  let end_time { end_time; _ } = end_time
+
+  module Date_time = struct
+    type t =
+      { date : string
+      ; time : string
+      }
+
+    let compare a b =
+      let comp_date = compare a.date b.date in
+      if comp_date == 0 then compare a.time b.time else comp_date
+    ;;
+  end
+
+  module SM = Map.Make (Date_time)
+
+  let earlier t1 t2 = if compare t1 t2 <= 0 then t1 else t2
+  let later t1 t2 = if compare t2 t2 <= 0 then t1 else t2
+
+  let exec ?(project_names = []) (module R : Repo.S) begin_date end_date =
+    let ( let* ) = Api.bind in
+    let* timesheet = R.find_timesheet begin_date end_date in
+    let* projects = R.find_projects () in
+    let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+    let id_by_name = RU.id_by_name (module Project) projects in
+    let some_project_ids, _ =
+      List.fold_left
+        (fun (some_project_ids, none_project_names) project_name ->
+          match id_by_name project_name with
+          | Some id -> id :: some_project_ids, none_project_names
+          | None -> some_project_ids, project_name :: none_project_names)
+        ([], [])
+        project_names
+    in
+    timesheet
+    |> List.filter (fun entry ->
+      not (Percentage.projects_matches some_project_ids entry))
+    |> List.sort (fun a b -> compare a b)
+    |> List.fold_left
+         (fun mp entry ->
+           let k =
+             { Date_time.date = Entry.date_string entry
+             ; Date_time.time = Entry.start_time_string entry
+             }
+           in
+           match SM.find_opt k mp with
+           | Some { date; start_time; _ } ->
+             let new_mp = SM.remove k mp in
+             let new_k =
+               { Date_time.date = Entry.date_string entry
+               ; Date_time.time = Entry.end_time_string entry
+               }
+             in
+             SM.add
+               new_k
+               { date; start_time; end_time = Entry.end_time_string entry }
+               new_mp
+           | None ->
+             SM.add
+               { Date_time.date = Entry.date_string entry
+               ; Date_time.time = Entry.end_time_string entry
+               }
+               { date = Entry.date_string entry
+               ; start_time = Entry.start_time_string entry
+               ; end_time = Entry.end_time_string entry
+               }
+               mp)
+         SM.empty
+    |> SM.bindings
+    |> List.map (fun (_, block) -> block)
+    |> Lwt.return_ok
+  ;;
+
+  let print_csv emit_column_headers =
+    if emit_column_headers then Printf.printf "\"Date\",\"Start\",\"End\"\n";
+    List.iter (fun block ->
+      Printf.printf
+        "\"%s\",\"%s\",\"%s\"\n"
+        (date block)
+        (start_time block)
+        (end_time block))
+  ;;
+end

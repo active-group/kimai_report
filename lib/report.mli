@@ -62,3 +62,20 @@ module Working_time : sig
       calculated working time to stderr. *)
   val print_overall_duration : t list -> unit
 end
+
+module Time_punch : sig
+  type t
+
+  (** [exec ~project_name (module R) begin_date end_date] is a list of all
+      time-punch entries between [begin_date] and [end_date] (inclusively) or a
+      string error. *)
+  val exec
+    :  ?project_names:string list
+    -> (module Repo.S)
+    -> Date.t
+    -> Date.t
+    -> t list Repo.or_error
+
+  (** [print_csv pairs] prints all working-time entries to stdout. *)
+  val print_csv : bool -> t list -> unit
+end
