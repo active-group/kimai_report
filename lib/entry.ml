@@ -37,6 +37,8 @@ let start_time_string { start_string; _ } =
 ;;
 
 let end_time_string { end_string; _ } = time_string_from_timestamp end_string
+let start_string { start_string; _ } = start_string
+let end_string { end_string; _ } = end_string
 
 module D = Decoder.Yojson.Safe
 

@@ -309,31 +309,14 @@ end
 
 module Time_punch = struct
   type t =
-    { date : string
-    ; start_time : string
+    { start_time : string
     ; end_time : string
     }
 
-  let date { date; _ } = date
   let start_time { start_time; _ } = start_time
   let end_time { end_time; _ } = end_time
 
-  module Date_time = struct
-    type t =
-      { date : string
-      ; time : string
-      }
-
-    let compare a b =
-      let comp_date = compare a.date b.date in
-      if comp_date == 0 then compare a.time b.time else comp_date
-    ;;
-  end
-
-  module SM = Map.Make (Date_time)
-
-  let earlier t1 t2 = if compare t1 t2 <= 0 then t1 else t2
-  let later t1 t2 = if compare t2 t2 <= 0 then t1 else t2
+  module SM = Map.Make (String)
 
   let exec ?(project_names = []) (module R : Repo.S) begin_date end_date =
     let ( let* ) = Api.bind in
@@ -353,36 +336,18 @@ module Time_punch = struct
     timesheet
     |> List.filter (fun entry ->
       not (Percentage.projects_matches some_project_ids entry))
-    |> List.sort (fun a b -> compare a b)
+    |> List.sort compare
     |> List.fold_left
          (fun mp entry ->
-           let k =
-             { Date_time.date = Entry.date_string entry
-             ; Date_time.time = Entry.start_time_string entry
-             }
-           in
-           match SM.find_opt k mp with
-           | Some { date; start_time; _ } ->
-             let new_mp = SM.remove k mp in
-             let new_k =
-               { Date_time.date = Entry.date_string entry
-               ; Date_time.time = Entry.end_time_string entry
-               }
-             in
-             SM.add
-               new_k
-               { date; start_time; end_time = Entry.end_time_string entry }
-               new_mp
+           let k_start = Entry.start_string entry in
+           let k_end = Entry.end_string entry in
+           match SM.find_opt k_start mp with
+           | Some { start_time; _ } ->
+             mp
+             |> SM.remove k_start
+             |> SM.add k_end { start_time; end_time = k_end }
            | None ->
-             SM.add
-               { Date_time.date = Entry.date_string entry
-               ; Date_time.time = Entry.end_time_string entry
-               }
-               { date = Entry.date_string entry
-               ; start_time = Entry.start_time_string entry
-               ; end_time = Entry.end_time_string entry
-               }
-               mp)
+             mp |> SM.add k_end { start_time = k_start; end_time = k_end })
          SM.empty
     |> SM.bindings
     |> List.map (fun (_, block) -> block)
@@ -390,12 +355,8 @@ module Time_punch = struct
   ;;
 
   let print_csv emit_column_headers =
-    if emit_column_headers then Printf.printf "\"Date\",\"Start\",\"End\"\n";
+    if emit_column_headers then Printf.printf "\"Start\",\"End\"\n";
     List.iter (fun block ->
-      Printf.printf
-        "\"%s\",\"%s\",\"%s\"\n"
-        (date block)
-        (start_time block)
-        (end_time block))
+      Printf.printf "\"%s\",\"%s\"\n" (start_time block) (end_time block))
   ;;
 end
