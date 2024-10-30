@@ -6,9 +6,12 @@ Utilities to generate reports for company controlling from a
 [Kimai](https://www.kimai.cloud/) instance.  It is assumed you have API-access
 to your instance.  You need
 
-- to know the api endpoint (i.e. `https://<username>.kimai.cloud/api`)
+- to know the api endpoint
 - the username or user email that is allowed to connect to the api
 - the password for that user
+
+All this is shown or can be set in the API access preferences for your Kimai
+user account.
 
 For more information, see [the Kimai API
 quickstart](https://www.kimai.org/documentation/rest-api.html).
@@ -42,13 +45,13 @@ directly via
 
 ```shell
 # Show help
-$ nix run github:neshtea/kimai_report -- --help
+$ nix run github:active-group/kimai_report -- --help
 
 # Generate timesheet report
-$ nix run github:neshtea/kimai_report -- timesheet https://<username>.kimai.cloud/api user@host.org super_secure_password
+$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD>
 
 # Generate timesheet report for a specific project (by project name), begin and end (inclusively)
-$ nix run github:neshtea/kimai_report -- timesheet https://<username>.kimai.cloud/api user@host.org super_secure_password --project my-project-name --begin 2023-12-01 --end 2023-12-23
+$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD> --project my-project-name --begin 2023-12-01 --end 2023-12-23
 2023-12-12,1.000000,"Projektverwaltung"
 2023-12-13,2.000000,"Tickets 529, 530"
 2023-12-14,0.500000,"Recherche: Docker Registry"
@@ -67,7 +70,7 @@ $ nix run github:neshtea/kimai_report -- timesheet https://<username>.kimai.clou
 2023-12-22,2.000000,"Release 1.4.1 (CMDB-Report Hotfix)"
 
 # Generate a percentages report
-$ nix run github:neshtea/kimai_report -- percentage https://<username>.kimai.cloud/api user@host.org super_secure_password --begin 2023-12-01 --end 2023-12-31
+$ nix run github:active-group/kimai_report -- percentage <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD> --begin 2023-12-01 --end 2023-12-31
 Internal,12h,16.845878%,17%
 Project_A,6h,8.602151%,9%
 Project_B,25h,35.842294%,36%
