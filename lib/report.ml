@@ -109,6 +109,115 @@ module Timesheet = struct
   ;;
 end
 
+module Records = struct
+  type t =
+    { start_time : string
+    ; end_time : string
+    ; project : string
+    ; activity : string
+    ; description : string
+    }
+
+  let start_time { start_time; _ } = start_time
+  let end_time { end_time; _ } = end_time
+  let project { project; _ } = project
+  let activity { activity; _ } = activity
+  let description { description; _ } = description
+
+  let projects_matches project_ids empty_result =
+    if [] == project_ids
+    then fun _ -> empty_result
+    else
+      fun entry ->
+      let project = Entry.project entry in
+      match project with
+      | None -> false
+      | Some project_id -> List.mem project_id project_ids
+  ;;
+
+  let exec
+    ?(project_names = [])
+    ?(exclude_project_names = [])
+    (module R : Repo.S)
+    begin_date
+    end_date
+    =
+    let ( let* ) = Api.bind in
+    let* projects = R.find_projects () in
+    let* activities = R.find_activities () in
+    let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+    let id_by_name = RU.id_by_name (module Project) projects in
+    let project_name_by_id = RU.name_by_id (module Project) projects in
+    let activity_name_by_id = RU.name_by_id (module Activity) activities in
+    let some_project_ids, none_project_names =
+      List.fold_left
+        (fun (some_project_ids, none_project_names) project_name ->
+          match id_by_name project_name with
+          | Some id -> id :: some_project_ids, none_project_names
+          | None -> some_project_ids, project_name :: none_project_names)
+        ([], [])
+        project_names
+    in
+    let some_excluded_project_ids, none_excluded_project_names =
+      List.fold_left
+        (fun (some_project_ids, none_project_names) project_name ->
+          match id_by_name project_name with
+          | Some id -> id :: some_project_ids, none_project_names
+          | None -> some_project_ids, project_name :: none_project_names)
+        ([], [])
+        exclude_project_names
+    in
+    if [] == none_project_names && [] == none_excluded_project_names
+    then
+      let* timesheet = R.find_timesheet begin_date end_date in
+      timesheet
+      |> List.filter (projects_matches some_project_ids true)
+      |> List.filter (fun entry ->
+        not (projects_matches some_excluded_project_ids false entry))
+      |> List.map (fun entry ->
+        { start_time = Entry.start_string entry
+        ; end_time = Entry.end_string entry
+        ; project =
+            (match Entry.project entry with
+             | Some project_id ->
+               project_name_by_id project_id |> Option.value ~default:""
+             | None -> "")
+        ; activity =
+            (match Entry.activity entry with
+             | Some activity_id ->
+               activity_name_by_id activity_id |> Option.value ~default:""
+             | None -> "")
+        ; description = Entry.description entry |> Option.value ~default:""
+        })
+      |> Lwt.return_ok
+    else
+      Lwt.return_error
+      @@ Printf.sprintf
+           "Projects do not exist: [%s]"
+           (String.concat
+              ", "
+              (List.append none_project_names none_excluded_project_names))
+  ;;
+
+  (* RFC 4180: escape double-quotes by doubling them *)
+  let escape_double_quotes s = Str.global_replace (Str.regexp {|\"|}) "\"\"" s
+
+  let print_csv emit_column_headers =
+    if emit_column_headers
+    then
+      Printf.printf
+        "\"Start\",\"End\",\"Project\",\"Activity\",\"Description\"\n";
+    List.iter (fun entry ->
+      Printf.printf
+        "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n"
+        (start_time entry)
+        (end_time entry)
+        (escape_double_quotes (project entry))
+        (escape_double_quotes (activity entry))
+        (escape_double_quotes (description entry)))
+  ;;
+end
+
 module Percentage = struct
   module SM = Map.Make (String)
 

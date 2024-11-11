@@ -37,6 +37,31 @@ let timesheet
     else ()
 ;;
 
+let records
+  api_url
+  api_user
+  api_pwd
+  begin_date
+  end_date
+  project_names
+  exclude_project_names
+  emit_column_headers
+  =
+  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module R = K.Repo.Cohttp (RC) in
+  match
+    K.Report.Records.exec
+      ~project_names
+      ~exclude_project_names
+      (module R)
+      begin_date
+      end_date
+    |> Lwt_main.run
+  with
+  | Error err -> prerr_endline @@ "Error: " ^ err
+  | Ok records -> K.Report.Records.print_csv emit_column_headers records
+;;
+
 let percentage
   api_url
   api_user
@@ -284,6 +309,25 @@ let working_time_cmd =
   C.Cmd.v info working_time_t
 ;;
 
+let records_t =
+  C.Term.(
+    const records
+    $ api_url
+    $ api_user
+    $ api_pwd
+    $ begin_date
+    $ end_date
+    $ project_names
+    $ exclude_project_names
+    $ emit_column_headers)
+;;
+
+let records_cmd =
+  let doc = "Generate a records sheet." in
+  let info = C.Cmd.info "records" ~doc in
+  C.Cmd.v info records_t
+;;
+
 let time_punch_t =
   C.Term.(
     const time_punch
@@ -377,6 +421,7 @@ let main_cmd =
     ; time_punch_cmd
     ; server_cmd
     ; record_cmd
+    ; records_cmd
     ]
 ;;
 

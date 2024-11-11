@@ -22,6 +22,24 @@ module Timesheet : sig
   val print_overall_duration : Entry.t list -> unit
 end
 
+module Records : sig
+  type t
+
+  (** [exec ~project_names ~exclude_project_names (module R) begin_date end_date] is a list of all
+      timesheet records between [begin_date] and [end_date] (inclusively) or a
+      string error. *)
+  val exec
+    :  ?project_names:string list
+    -> ?exclude_project_names:string list
+    -> (module Repo.S)
+    -> Date.t
+    -> Date.t
+    -> t list Repo.or_error
+
+  (** [print_csv pairs] prints all timesheet records to stdout. *)
+  val print_csv : bool -> t list -> unit
+end
+
 module Percentage : sig
   (** [exec (module R) begin_date end_date] is a list of pairs, mapping project
       names to percentages. Includes everything between [begin_date] and
