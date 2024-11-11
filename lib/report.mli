@@ -28,7 +28,7 @@ module Percentage : sig
       [end_date] (inclusively) or a string error. *)
   val exec
     :  ?by_customers:bool
-    -> ?project_names:string list
+    -> ?exclude_project_names:string list
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -45,7 +45,7 @@ module Working_time : sig
       working-day entries between [begin_date] and [end_date] (inclusively) or a
       string error. *)
   val exec
-    :  ?project_names:string list
+    :  ?exclude_project_names:string list
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -70,7 +70,7 @@ module Time_punch : sig
       time-punch entries between [begin_date] and [end_date] (inclusively) or a
       string error. *)
   val exec
-    :  ?project_names:string list
+    :  ?exclude_project_names:string list
     -> (module Repo.S)
     -> Date.t
     -> Date.t

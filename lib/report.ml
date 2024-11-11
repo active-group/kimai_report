@@ -170,7 +170,7 @@ module Percentage = struct
 
   let exec
     ?(by_customers = false)
-    ?(project_names = [])
+    ?(exclude_project_names = [])
     (module R : Repo.S)
     begin_date
     end_date
@@ -188,7 +188,7 @@ module Percentage = struct
           | Some id -> id :: some_project_ids, none_project_names
           | None -> some_project_ids, project_name :: none_project_names)
         ([], [])
-        project_names
+        exclude_project_names
     in
     let filtered_timesheet =
       List.filter
@@ -248,7 +248,8 @@ module Working_time = struct
   let earlier t1 t2 = if compare t1 t2 <= 0 then t1 else t2
   let later t1 t2 = if compare t2 t2 <= 0 then t1 else t2
 
-  let exec ?(project_names = []) (module R : Repo.S) begin_date end_date =
+  let exec ?(exclude_project_names = []) (module R : Repo.S) begin_date end_date
+    =
     let ( let* ) = Api.bind in
     let* timesheet = R.find_timesheet begin_date end_date in
     let* projects = R.find_projects () in
@@ -261,7 +262,7 @@ module Working_time = struct
           | Some id -> id :: some_project_ids, none_project_names
           | None -> some_project_ids, project_name :: none_project_names)
         ([], [])
-        project_names
+        exclude_project_names
     in
     timesheet
     |> List.filter (fun entry ->
@@ -326,7 +327,8 @@ module Time_punch = struct
 
   module SM = Map.Make (String)
 
-  let exec ?(project_names = []) (module R : Repo.S) begin_date end_date =
+  let exec ?(exclude_project_names = []) (module R : Repo.S) begin_date end_date
+    =
     let ( let* ) = Api.bind in
     let* timesheet = R.find_timesheet begin_date end_date in
     let* projects = R.find_projects () in
@@ -339,7 +341,7 @@ module Time_punch = struct
           | Some id -> id :: some_project_ids, none_project_names
           | None -> some_project_ids, project_name :: none_project_names)
         ([], [])
-        project_names
+        exclude_project_names
     in
     timesheet
     |> List.filter (fun entry ->

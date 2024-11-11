@@ -44,14 +44,14 @@ let percentage
   begin_date
   end_date
   by_customers
-  project_names
+  exclude_project_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Percentage.exec
       ~by_customers
-      ~project_names
+      ~exclude_project_names
       (module R)
       begin_date
       end_date
@@ -69,12 +69,16 @@ let working_time
   end_date
   show_overall_duration
   emit_column_headers
-  project_names
+  exclude_project_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
   let module R = K.Repo.Cohttp (RC) in
   match
-    K.Report.Working_time.exec ~project_names (module R) begin_date end_date
+    K.Report.Working_time.exec
+      ~exclude_project_names
+      (module R)
+      begin_date
+      end_date
     |> Lwt_main.run
   with
   | Error err -> prerr_endline @@ "Error: " ^ err
@@ -92,12 +96,16 @@ let time_punch
   begin_date
   end_date
   emit_column_headers
-  project_names
+  exclude_project_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
   let module R = K.Repo.Cohttp (RC) in
   match
-    K.Report.Time_punch.exec ~project_names (module R) begin_date end_date
+    K.Report.Time_punch.exec
+      ~exclude_project_names
+      (module R)
+      begin_date
+      end_date
     |> Lwt_main.run
   with
   | Error err -> prerr_endline @@ "Error: " ^ err
@@ -230,7 +238,7 @@ let timesheet_cmd =
   C.Cmd.v info timesheet_t
 ;;
 
-let ignore_project_names =
+let exclude_project_names =
   let doc =
     "Name of the projects that are not included in the working-times report. \
      If not given, all projects are included. If given more than once, does \
@@ -248,7 +256,7 @@ let percentage_t =
     $ begin_date
     $ end_date
     $ percentage_by_customers
-    $ ignore_project_names)
+    $ exclude_project_names)
 ;;
 
 let percentage_cmd =
@@ -267,7 +275,7 @@ let working_time_t =
     $ end_date
     $ show_overall_duration
     $ emit_column_headers
-    $ ignore_project_names)
+    $ exclude_project_names)
 ;;
 
 let working_time_cmd =
@@ -285,7 +293,7 @@ let time_punch_t =
     $ begin_date
     $ end_date
     $ emit_column_headers
-    $ ignore_project_names)
+    $ exclude_project_names)
 ;;
 
 let time_punch_cmd =
