@@ -7,8 +7,7 @@ Utilities to generate reports for company controlling from a
 to your instance.  You need
 
 - to know the api endpoint
-- the username or user email that is allowed to connect to the api
-- the password for that user
+- your API token
 
 All this is shown or can be set in the API access preferences for your Kimai
 user account.
@@ -48,10 +47,10 @@ directly via
 $ nix run github:active-group/kimai_report -- --help
 
 # Generate timesheet report
-$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD>
+$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_TOKEN>
 
 # Generate timesheet report for a specific project (by project name), begin and end (inclusively)
-$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD> --project my-project-name --begin 2023-12-01 --end 2023-12-23
+$ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_API_TOKEN> --project my-project-name --begin 2023-12-01 --end 2023-12-23
 2023-12-12,1.000000,"Projektverwaltung"
 2023-12-13,2.000000,"Tickets 529, 530"
 2023-12-14,0.500000,"Recherche: Docker Registry"
@@ -70,7 +69,7 @@ $ nix run github:active-group/kimai_report -- timesheet <KIMAI_API_URL> <KIMAI_A
 2023-12-22,2.000000,"Release 1.4.1 (CMDB-Report Hotfix)"
 
 # Generate a percentages report
-$ nix run github:active-group/kimai_report -- percentage <KIMAI_API_URL> <KIMAI_API_USER> <KIMAI_API_PASSWORD> --begin 2023-12-01 --end 2023-12-31
+$ nix run github:active-group/kimai_report -- percentage <KIMAI_API_URL> <KIMAI_API_TOKEN> --begin 2023-12-01 --end 2023-12-31
 Internal,12h,16.845878%,17%
 Project_A,6h,8.602151%,9%
 Project_B,25h,35.842294%,36%

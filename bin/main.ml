@@ -1,16 +1,15 @@
 module C = Cmdliner
 module K = Kimai_report
 
-let server api_url api_user api_pwd port =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+let server api_url api_token port =
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   K.Web.start_server (module R : K.Repo.S) port
 ;;
 
 let timesheet
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date
   end_date
   project_names
@@ -18,7 +17,7 @@ let timesheet
   emit_column_headers
   prepend_project_name
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Timesheet.exec
@@ -39,15 +38,14 @@ let timesheet
 
 let records
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date
   end_date
   project_names
   exclude_project_names
   emit_column_headers
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Records.exec
@@ -64,14 +62,13 @@ let records
 
 let percentage
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date
   end_date
   by_customers
   exclude_project_names
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Percentage.exec
@@ -88,15 +85,14 @@ let percentage
 
 let working_time
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date
   end_date
   show_overall_duration
   emit_column_headers
   exclude_project_names
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Working_time.exec
@@ -116,14 +112,13 @@ let working_time
 
 let time_punch
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date
   end_date
   emit_column_headers
   exclude_project_names
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Time_punch.exec
@@ -140,15 +135,14 @@ let time_punch
 
 let record
   api_url
-  api_user
-  api_pwd
+  api_token
   begin_date_time
   end_date_time
   project_name
   activity_name
   description
   =
-  let module RC = (val K.Api.make_request_cfg api_url api_user api_pwd) in
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Record.Record.exec
@@ -169,14 +163,9 @@ let api_url =
   C.Arg.(value @@ pos 0 string "" @@ info [] ~docv:"API_URL" ~doc)
 ;;
 
-let api_user =
-  let doc = "The user connecting to the API." in
-  C.Arg.(value @@ pos 1 string "" @@ info [] ~docv:"API_USER" ~doc)
-;;
-
-let api_pwd =
-  let doc = "The password of the user connecting to the of the API to." in
-  C.Arg.(value @@ pos 2 string "" @@ info [] ~docv:"API_PWD" ~doc)
+let api_token =
+  let doc = "The token for connecting to the API." in
+  C.Arg.(value @@ pos 1 string "" @@ info [] ~docv:"API_TOKEN" ~doc)
 ;;
 
 let project_names =
@@ -247,8 +236,7 @@ let timesheet_t =
   C.Term.(
     const timesheet
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ begin_date
     $ end_date
     $ project_names
@@ -276,8 +264,7 @@ let percentage_t =
   C.Term.(
     const percentage
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ begin_date
     $ end_date
     $ percentage_by_customers
@@ -294,8 +281,7 @@ let working_time_t =
   C.Term.(
     const working_time
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ begin_date
     $ end_date
     $ show_overall_duration
@@ -313,8 +299,7 @@ let records_t =
   C.Term.(
     const records
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ begin_date
     $ end_date
     $ project_names
@@ -332,8 +317,7 @@ let time_punch_t =
   C.Term.(
     const time_punch
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ begin_date
     $ end_date
     $ emit_column_headers
@@ -351,7 +335,7 @@ let port =
   C.Arg.(value @@ opt int 8080 @@ info [ "port" ] ~doc)
 ;;
 
-let server_t = C.Term.(const server $ api_url $ api_user $ api_pwd $ port)
+let server_t = C.Term.(const server $ api_url $ api_token $ port)
 
 let server_cmd =
   let doc = "A small webclient for fetching and displaying reports." in
@@ -392,8 +376,7 @@ let record_t =
   C.Term.(
     const record
     $ api_url
-    $ api_user
-    $ api_pwd
+    $ api_token
     $ record_begin_date_time
     $ record_end_date_time
     $ record_project_name

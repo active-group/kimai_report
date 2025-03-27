@@ -19,26 +19,21 @@ let timestamp_decoder =
 
 module type REQUEST_CFG = sig
   val api_url : string
-  val api_user : string
-  val api_pwd : string
+  val api_token : string
 end
 
-let make_request_cfg api_url api_user api_pwd =
+let make_request_cfg api_url api_token =
   (module struct
     let api_url = api_url
-    let api_user = api_user
-    let api_pwd = api_pwd
+    let api_token = api_token
   end : REQUEST_CFG)
 ;;
 
-let request_headers api_user api_pwd =
+let request_headers api_token =
   let module H = Cohttp.Header in
   H.add_list
     (H.init ())
-    [ "X-AUTH-USER", api_user
-    ; "X-AUTH-TOKEN", api_pwd
-    ; "accept", "application/json"
-    ]
+    [ "Authorization", "Bearer " ^ api_token; "accept", "application/json" ]
 ;;
 
 type 'a body_decoder = 'a Decoder.Yojson.Safe.decoder
@@ -126,7 +121,7 @@ let get_with_total_count headers uri =
 
 let run_request (module RC : REQUEST_CFG) = function
   | Api_request (request_method, endpoint, args) ->
-    let headers = request_headers RC.api_user RC.api_pwd in
+    let headers = request_headers RC.api_token in
     let uri =
       Uri.add_query_params'
         (Printf.sprintf "%s%s" RC.api_url endpoint |> Uri.of_string)

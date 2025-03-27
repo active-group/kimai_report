@@ -4,13 +4,12 @@ val timestamp_decoder : Ptime.t Decoder.Yojson.Safe.decoder
     the configuration for an api connection. *)
 module type REQUEST_CFG = sig
   val api_url : string
-  val api_user : string
-  val api_pwd : string
+  val api_token : string
 end
 
-(** [make_request_cfg api_url api_user api_pwd] is a module that implements the
+(** [make_request_cfg api_url api_token] is a module that implements the
     {!REQUEST_CFG} signature. *)
-val make_request_cfg : string -> string -> string -> (module REQUEST_CFG)
+val make_request_cfg : string -> string -> (module REQUEST_CFG)
 
 (** [request_args] are additional arguments that can be fed to an {!api_request}
     to provide additional arguments to the request. *)
