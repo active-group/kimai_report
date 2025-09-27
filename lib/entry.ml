@@ -1,7 +1,7 @@
 type t =
   { date : Ptime.t
   ; start_string : string
-  ; end_string : string
+  ; end_string : string option
   ; duration : float
   ; activity : int option
   ; description : string option
@@ -36,7 +36,12 @@ let start_time_string { start_string; _ } =
   time_string_from_timestamp start_string
 ;;
 
-let end_time_string { end_string; _ } = time_string_from_timestamp end_string
+let end_time_string { end_string; _ } =
+  match end_string with
+  | Some es -> time_string_from_timestamp es
+  | None -> ""
+;;
+
 let start_string { start_string; _ } = start_string
 let end_string { end_string; _ } = end_string
 
@@ -46,7 +51,7 @@ let decoder =
   let open D.Syntax in
   let* date = D.field "begin" Api.timestamp_decoder in
   let* start_string = D.field "begin" D.string in
-  let* end_string = D.field "end" D.string in
+  let* end_string = D.optional @@ D.field "end" D.string in
   let* description = D.optional @@ D.field "description" D.string in
   let* activity = D.optional @@ D.field "activity" D.int in
   let* duration' = D.field "duration" D.int in

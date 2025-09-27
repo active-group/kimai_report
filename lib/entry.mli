@@ -10,7 +10,7 @@ val date_string : t -> string
 val start_time_string : t -> string
 val end_time_string : t -> string
 val start_string : t -> string
-val end_string : t -> string
+val end_string : t -> string option
 val decoder : t Decoder.Yojson.Safe.decoder
 
 val encoder

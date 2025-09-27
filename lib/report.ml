@@ -174,9 +174,10 @@ module Records = struct
       |> List.filter (projects_matches some_project_ids true)
       |> List.filter (fun entry ->
         not (projects_matches some_excluded_project_ids false entry))
+      |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
       |> List.map (fun entry ->
         { start_time = Entry.start_string entry
-        ; end_time = Entry.end_string entry
+        ; end_time = Option.value (Entry.end_string entry) ~default:""
         ; project =
             (match Entry.project entry with
              | Some project_id ->
@@ -355,7 +356,7 @@ module Working_time = struct
   module SM = Map.Make (String)
 
   let earlier t1 t2 = if compare t1 t2 <= 0 then t1 else t2
-  let later t1 t2 = if compare t2 t2 <= 0 then t1 else t2
+  let later t1 t2 = if compare t2 t1 <= 0 then t1 else t2
 
   let exec ?(exclude_project_names = []) (module R : Repo.S) begin_date end_date
     =
@@ -376,6 +377,7 @@ module Working_time = struct
     timesheet
     |> List.filter (fun entry ->
       not (Percentage.projects_matches some_project_ids entry))
+    |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
     |> List.fold_left
          (fun mp entry ->
            SM.update
@@ -455,11 +457,12 @@ module Time_punch = struct
     timesheet
     |> List.filter (fun entry ->
       not (Percentage.projects_matches some_project_ids entry))
+    |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
     |> List.sort compare
     |> List.fold_left
          (fun mp entry ->
            let k_start = Entry.start_string entry in
-           let k_end = Entry.end_string entry in
+           let k_end = Option.value (Entry.end_string entry) ~default:"" in
            match SM.find_opt k_start mp with
            | Some { start_time; _ } ->
              mp
