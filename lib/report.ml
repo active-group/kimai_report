@@ -44,6 +44,7 @@ module Timesheet = struct
   let exec
     ?(project_names = [])
     ?(prepend_project_name = false)
+    ?(user_names = [])
     (module R : Repo.S)
     begin_date
     end_date
@@ -52,28 +53,32 @@ module Timesheet = struct
     let* projects = R.find_projects () in
     let* activities = R.find_activities () in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
-    let id_by_name = RU.id_by_name (module Project) projects in
     let some_project_ids, none_project_names =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        project_names
+      RU.ids_by_names (module Project) projects project_names
     in
     if [] == none_project_names
     then
-      let* timesheet = R.find_timesheet begin_date end_date in
-      timesheet
-      |> List.filter (projects_matches some_project_ids)
-      |> List.map
-           (fill_description
-              ~prepend_project_name
-              (RU.name_by_id (module Activity) activities)
-              (RU.name_by_id (module Project) projects))
-      |> List.rev
-      |> Lwt.return_ok
+      let* users = R.find_users () in
+      let some_user_ids, none_user_names =
+        RU.ids_by_names (module User) users user_names
+      in
+      if [] == none_user_names
+      then
+        let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+        timesheet
+        |> List.filter (projects_matches some_project_ids)
+        |> List.map
+             (fill_description
+                ~prepend_project_name
+                (RU.name_by_id (module Activity) activities)
+                (RU.name_by_id (module Project) projects))
+        |> List.rev
+        |> Lwt.return_ok
+      else
+        Lwt.return_error
+        @@ Printf.sprintf
+             "Users do not exist: [%s]"
+             (String.concat ", " none_user_names)
     else
       Lwt.return_error
       @@ Printf.sprintf
@@ -138,6 +143,7 @@ module Records = struct
   let exec
     ?(project_names = [])
     ?(exclude_project_names = [])
+    ?(user_names = [])
     (module R : Repo.S)
     begin_date
     end_date
@@ -146,51 +152,49 @@ module Records = struct
     let* projects = R.find_projects () in
     let* activities = R.find_activities () in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
-    let id_by_name = RU.id_by_name (module Project) projects in
     let project_name_by_id = RU.name_by_id (module Project) projects in
     let activity_name_by_id = RU.name_by_id (module Activity) activities in
     let some_project_ids, none_project_names =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        project_names
+      RU.ids_by_names (module Project) projects project_names
     in
     let some_excluded_project_ids, none_excluded_project_names =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        exclude_project_names
+      RU.ids_by_names (module Project) projects exclude_project_names
     in
     if [] == none_project_names && [] == none_excluded_project_names
     then
-      let* timesheet = R.find_timesheet begin_date end_date in
-      timesheet
-      |> List.filter (projects_matches some_project_ids true)
-      |> List.filter (fun entry ->
-        not (projects_matches some_excluded_project_ids false entry))
-      |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
-      |> List.map (fun entry ->
-        { start_time = Entry.start_string entry
-        ; end_time = Option.value (Entry.end_string entry) ~default:""
-        ; project =
-            (match Entry.project entry with
-             | Some project_id ->
-               project_name_by_id project_id |> Option.value ~default:""
-             | None -> "")
-        ; activity =
-            (match Entry.activity entry with
-             | Some activity_id ->
-               activity_name_by_id activity_id |> Option.value ~default:""
-             | None -> "")
-        ; description = Entry.description entry |> Option.value ~default:""
-        })
-      |> Lwt.return_ok
+      let* users = R.find_users () in
+      let some_user_ids, none_user_names =
+        RU.ids_by_names (module User) users user_names
+      in
+      if [] == none_user_names
+      then
+        let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+        timesheet
+        |> List.filter (projects_matches some_project_ids true)
+        |> List.filter (fun entry ->
+          not (projects_matches some_excluded_project_ids false entry))
+        |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
+        |> List.map (fun entry ->
+          { start_time = Entry.start_string entry
+          ; end_time = Option.value (Entry.end_string entry) ~default:""
+          ; project =
+              (match Entry.project entry with
+               | Some project_id ->
+                 project_name_by_id project_id |> Option.value ~default:""
+               | None -> "")
+          ; activity =
+              (match Entry.activity entry with
+               | Some activity_id ->
+                 activity_name_by_id activity_id |> Option.value ~default:""
+               | None -> "")
+          ; description = Entry.description entry |> Option.value ~default:""
+          })
+        |> Lwt.return_ok
+      else
+        Lwt.return_error
+        @@ Printf.sprintf
+             "Users do not exist: [%s]"
+             (String.concat ", " none_user_names)
     else
       Lwt.return_error
       @@ Printf.sprintf
@@ -281,6 +285,7 @@ module Percentage = struct
   let exec
     ?(by_customers = false)
     ?(exclude_project_names = [])
+    ?(user_names = [])
     (module R : Repo.S)
     begin_date
     end_date
@@ -288,43 +293,49 @@ module Percentage = struct
     let ( let* ) = Api.bind in
     let* projects = R.find_projects () in
     let* customers = R.find_customers () in
-    let* timesheet = R.find_timesheet begin_date end_date in
+    let* users = R.find_users () in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
-    let id_by_name = RU.id_by_name (module Project) projects in
-    let some_project_ids, _ =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        exclude_project_names
+    let some_user_ids, none_user_names =
+      RU.ids_by_names (module User) users user_names
     in
-    let filtered_timesheet =
-      List.filter
-        (fun entry -> not (projects_matches some_project_ids entry))
-        timesheet
-    in
-    let durations =
-      durations_by_label
-        filtered_timesheet
-        (if by_customers
-         then customer_labels (module R) projects customers
-         else project_labels (module R) projects)
-    in
-    let overall_duration =
-      SM.bindings durations |> List.fold_left (fun acc kv -> acc +. snd kv) 0.0
-    in
-    let int_floor f = Float.round f |> int_of_float in
-    durations
-    |> SM.map (fun duration ->
-      let percentage = duration /. overall_duration *. 100. in
-      int_floor duration, percentage, int_floor percentage)
-    |> SM.bindings
-    |> List.sort
-         (fun (_, (overall_hours_1, _, _)) (_, (overall_hours_2, _, _)) ->
-            compare overall_hours_2 overall_hours_1)
-    |> Lwt.return_ok
+    if [] == none_user_names
+    then
+      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+      let some_project_ids, _ =
+        RU.ids_by_names (module Project) projects exclude_project_names
+      in
+      let filtered_timesheet =
+        List.filter
+          (fun entry -> not (projects_matches some_project_ids entry))
+          timesheet
+      in
+      let durations =
+        durations_by_label
+          filtered_timesheet
+          (if by_customers
+           then customer_labels (module R) projects customers
+           else project_labels (module R) projects)
+      in
+      let overall_duration =
+        SM.bindings durations
+        |> List.fold_left (fun acc kv -> acc +. snd kv) 0.0
+      in
+      let int_floor f = Float.round f |> int_of_float in
+      durations
+      |> SM.map (fun duration ->
+        let percentage = duration /. overall_duration *. 100. in
+        int_floor duration, percentage, int_floor percentage)
+      |> SM.bindings
+      |> List.sort
+           (fun (_, (overall_hours_1, _, _)) (_, (overall_hours_2, _, _)) ->
+              compare overall_hours_2 overall_hours_1)
+      |> Lwt.return_ok
+    else
+      Lwt.return_error
+      @@ Printf.sprintf
+           "Users do not exist: [%s]"
+           (String.concat ", " none_user_names)
   ;;
 
   let print_csv entries =
@@ -358,52 +369,62 @@ module Working_time = struct
   let earlier t1 t2 = if compare t1 t2 <= 0 then t1 else t2
   let later t1 t2 = if compare t2 t1 <= 0 then t1 else t2
 
-  let exec ?(exclude_project_names = []) (module R : Repo.S) begin_date end_date
+  let exec
+    ?(exclude_project_names = [])
+    ?(user_names = [])
+    (module R : Repo.S)
+    begin_date
+    end_date
     =
     let ( let* ) = Api.bind in
-    let* timesheet = R.find_timesheet begin_date end_date in
-    let* projects = R.find_projects () in
+    let* users = R.find_users () in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
-    let id_by_name = RU.id_by_name (module Project) projects in
-    let some_project_ids, _ =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        exclude_project_names
+    let some_user_ids, none_user_names =
+      RU.ids_by_names (module User) users user_names
     in
-    timesheet
-    |> List.filter (fun entry ->
-      not (Percentage.projects_matches some_project_ids entry))
-    |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
-    |> List.fold_left
-         (fun mp entry ->
-           SM.update
-             (Entry.date_string entry)
-             (fun workday_opt ->
-               match workday_opt with
-               | Some { start_time; end_time; duration; _ } ->
-                 Some
-                   { date = Entry.date_string entry
-                   ; start_time =
-                       earlier start_time @@ Entry.start_time_string entry
-                   ; end_time = later end_time @@ Entry.end_time_string entry
-                   ; duration = duration +. Entry.duration entry
-                   }
-               | None ->
-                 Some
-                   { date = Entry.date_string entry
-                   ; start_time = Entry.start_time_string entry
-                   ; end_time = Entry.end_time_string entry
-                   ; duration = Entry.duration entry
-                   })
-             mp)
-         SM.empty
-    |> SM.bindings
-    |> List.map (fun (_, workday) -> workday)
-    |> Lwt.return_ok
+    if [] == none_user_names
+    then
+      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let* projects = R.find_projects () in
+      let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+      let some_project_ids, _ =
+        RU.ids_by_names (module Project) projects exclude_project_names
+      in
+      timesheet
+      |> List.filter (fun entry ->
+        not (Percentage.projects_matches some_project_ids entry))
+      |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
+      |> List.fold_left
+           (fun mp entry ->
+             SM.update
+               (Entry.date_string entry)
+               (fun workday_opt ->
+                 match workday_opt with
+                 | Some { start_time; end_time; duration; _ } ->
+                   Some
+                     { date = Entry.date_string entry
+                     ; start_time =
+                         earlier start_time @@ Entry.start_time_string entry
+                     ; end_time = later end_time @@ Entry.end_time_string entry
+                     ; duration = duration +. Entry.duration entry
+                     }
+                 | None ->
+                   Some
+                     { date = Entry.date_string entry
+                     ; start_time = Entry.start_time_string entry
+                     ; end_time = Entry.end_time_string entry
+                     ; duration = Entry.duration entry
+                     })
+               mp)
+           SM.empty
+      |> SM.bindings
+      |> List.map (fun (_, workday) -> workday)
+      |> Lwt.return_ok
+    else
+      Lwt.return_error
+      @@ Printf.sprintf
+           "Users do not exist: [%s]"
+           (String.concat ", " none_user_names)
   ;;
 
   let print_csv emit_column_headers =
@@ -438,42 +459,52 @@ module Time_punch = struct
 
   module SM = Map.Make (String)
 
-  let exec ?(exclude_project_names = []) (module R : Repo.S) begin_date end_date
+  let exec
+    ?(exclude_project_names = [])
+    ?(user_names = [])
+    (module R : Repo.S)
+    begin_date
+    end_date
     =
     let ( let* ) = Api.bind in
-    let* timesheet = R.find_timesheet begin_date end_date in
-    let* projects = R.find_projects () in
+    let* users = R.find_users () in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
-    let id_by_name = RU.id_by_name (module Project) projects in
-    let some_project_ids, _ =
-      List.fold_left
-        (fun (some_project_ids, none_project_names) project_name ->
-          match id_by_name project_name with
-          | Some id -> id :: some_project_ids, none_project_names
-          | None -> some_project_ids, project_name :: none_project_names)
-        ([], [])
-        exclude_project_names
+    let some_user_ids, none_user_names =
+      RU.ids_by_names (module User) users user_names
     in
-    timesheet
-    |> List.filter (fun entry ->
-      not (Percentage.projects_matches some_project_ids entry))
-    |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
-    |> List.sort compare
-    |> List.fold_left
-         (fun mp entry ->
-           let k_start = Entry.start_string entry in
-           let k_end = Option.value (Entry.end_string entry) ~default:"" in
-           match SM.find_opt k_start mp with
-           | Some { start_time; _ } ->
-             mp
-             |> SM.remove k_start
-             |> SM.add k_end { start_time; end_time = k_end }
-           | None ->
-             mp |> SM.add k_end { start_time = k_start; end_time = k_end })
-         SM.empty
-    |> SM.bindings
-    |> List.map (fun (_, block) -> block)
-    |> Lwt.return_ok
+    if [] == none_user_names
+    then
+      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let* projects = R.find_projects () in
+      let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+      let some_project_ids, _ =
+        RU.ids_by_names (module Project) projects exclude_project_names
+      in
+      timesheet
+      |> List.filter (fun entry ->
+        not (Percentage.projects_matches some_project_ids entry))
+      |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
+      |> List.sort compare
+      |> List.fold_left
+           (fun mp entry ->
+             let k_start = Entry.start_string entry in
+             let k_end = Option.value (Entry.end_string entry) ~default:"" in
+             match SM.find_opt k_start mp with
+             | Some { start_time; _ } ->
+               mp
+               |> SM.remove k_start
+               |> SM.add k_end { start_time; end_time = k_end }
+             | None ->
+               mp |> SM.add k_end { start_time = k_start; end_time = k_end })
+           SM.empty
+      |> SM.bindings
+      |> List.map (fun (_, block) -> block)
+      |> Lwt.return_ok
+    else
+      Lwt.return_error
+      @@ Printf.sprintf
+           "Users do not exist: [%s]"
+           (String.concat ", " none_user_names)
   ;;
 
   let print_csv emit_column_headers =

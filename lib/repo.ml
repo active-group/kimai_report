@@ -17,8 +17,16 @@ module type S = sig
   val add_project : string -> int -> bool or_error
   val find_activities : unit -> Activity.t list or_error
   val add_activity : string -> bool or_error
-  val find_timesheet : Date.t -> Date.t -> Entry.t list or_error
-  val add_timesheet : string -> string -> int -> int -> string -> bool or_error
+  val find_timesheet : Date.t -> Date.t -> int list -> Entry.t list or_error
+
+  val add_timesheet
+    :  ?user:int option
+    -> string
+    -> string
+    -> int
+    -> int
+    -> string
+    -> bool or_error
 end
 
 module Cohttp (RC : Api.REQUEST_CFG) : S = struct
@@ -62,22 +70,34 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
     |> run
   ;;
 
-  let find_timesheet begin_date end_date =
+  let find_timesheet begin_date end_date user_ids =
     D.list Entry.decoder
     |> Api.make_api_get_request
          ~args:
-           [ "begin", Date.to_html5_start_of_day_string begin_date
-           ; "end", Date.to_html5_end_of_day_string end_date
-           ]
-         "/timesheets"
+           (List.append
+              [ "begin", Date.to_html5_start_of_day_string begin_date
+              ; "end", Date.to_html5_end_of_day_string end_date
+              ]
+              (List.map
+                 (fun user_id -> "users[]", string_of_int user_id)
+                 user_ids))
+       @@ "/timesheets"
     |> run
   ;;
 
-  let add_timesheet begin_date_time end_date_time project activity description =
+  let add_timesheet
+    ?(user = None)
+    begin_date_time
+    end_date_time
+    project
+    activity
+    description
+    =
     D.return true
     |> Api.make_api_post_request
          "/timesheets"
          (Entry.encoder
+            ~user
             begin_date_time
             end_date_time
             project
@@ -180,6 +200,22 @@ struct
     match by_name (module E) things name with
     | Some thing -> Some (E.id thing)
     | None -> None
+  ;;
+
+  let ids_by_names
+    (type a)
+    (module E : Bi_lookup.Elt_sig with type t = a)
+    (things : a list)
+    names
+    =
+    let id_by_name = id_by_name (module E) things in
+    List.fold_left
+      (fun (some_ids, none_names) name ->
+        match id_by_name name with
+        | Some id -> id :: some_ids, none_names
+        | None -> some_ids, name :: none_names)
+      ([], [])
+      names
   ;;
 
   let by_id

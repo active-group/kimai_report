@@ -13,6 +13,7 @@ module Record = struct
   ;;
 
   let exec
+    ?(user_name = None)
     (module R : Repo.S)
     begin_date_time
     end_date_time
@@ -21,9 +22,23 @@ module Record = struct
     description
     =
     let ( let* ) = Api.bind in
+    let* users = R.find_users () in
+    let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Hash) in
+    let user_id_result =
+      match user_name with
+      | Some user_name -> RU.id_by_name (module User) users user_name
+      | None -> None
+    in
+    let user_id_error =
+      match user_name with
+      | None -> Result.ok 0
+      | Some user_name ->
+        Option.to_result
+          user_id_result
+          ~none:(Printf.sprintf "User %s does not exist" user_name)
+    in
     let* projects = R.find_projects () in
     let* activities = R.find_activities () in
-    let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Hash) in
     let project_id_result =
       RU.id_by_name (module Project) projects project_name
       |> Option.to_result
@@ -35,7 +50,8 @@ module Record = struct
            ~none:(Printf.sprintf "Activity %s does not exist" activity_name)
     in
     let maybe_errors =
-      combine_errors_opt [ project_id_result; activity_id_result ]
+      combine_errors_opt
+        [ user_id_error; project_id_result; activity_id_result ]
     in
     match maybe_errors with
     | Some errors -> Lwt.return_error (String.concat ", " errors)

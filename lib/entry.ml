@@ -6,6 +6,7 @@ type t =
   ; activity : int option
   ; description : string option
   ; project : int option
+  ; user : int option
   }
 
 let date { date; _ } = date
@@ -14,6 +15,7 @@ let duration { duration; _ } = duration
 let description { description; _ } = description
 let with_description t description = { t with description }
 let activity { activity; _ } = activity
+let user { user; _ } = user
 
 let date_string_from_timestamp s =
   match Str.split (Str.regexp "T") s with
@@ -57,11 +59,27 @@ let decoder =
   let* duration' = D.field "duration" D.int in
   let duration = float_of_int duration' /. 60. /. 60. in
   let* project = D.optional @@ D.field "project" D.int in
+  let* user = D.optional @@ D.field "user" D.int in
   D.return
-    { date; start_string; end_string; duration; activity; description; project }
+    { date
+    ; start_string
+    ; end_string
+    ; duration
+    ; activity
+    ; description
+    ; project
+    ; user
+    }
 ;;
 
-let encoder begin_date_time end_date_time project activity description =
+let encoder
+  ?(user = None)
+  begin_date_time
+  end_date_time
+  project
+  activity
+  description
+  =
   let entry =
     `Assoc
       [ "begin", `String begin_date_time
@@ -69,6 +87,10 @@ let encoder begin_date_time end_date_time project activity description =
       ; "project", `Int project
       ; "activity", `Int activity
       ; "description", `String description
+      ; ( "user"
+        , match user with
+          | Some u -> `Int u
+          | None -> `Null )
       ]
   in
   Encoder.Yojson.Encoder.to_string entry

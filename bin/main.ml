@@ -16,6 +16,7 @@ let timesheet
   show_overall_duration
   emit_column_headers
   prepend_project_name
+  user_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -23,6 +24,7 @@ let timesheet
     K.Report.Timesheet.exec
       ~project_names
       ~prepend_project_name
+      ~user_names
       (module R)
       begin_date
       end_date
@@ -44,6 +46,7 @@ let records
   project_names
   exclude_project_names
   emit_column_headers
+  user_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -51,6 +54,7 @@ let records
     K.Report.Records.exec
       ~project_names
       ~exclude_project_names
+      ~user_names
       (module R)
       begin_date
       end_date
@@ -67,6 +71,7 @@ let percentage
   end_date
   by_customers
   exclude_project_names
+  user_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -74,6 +79,7 @@ let percentage
     K.Report.Percentage.exec
       ~by_customers
       ~exclude_project_names
+      ~user_names
       (module R)
       begin_date
       end_date
@@ -91,12 +97,14 @@ let working_time
   show_overall_duration
   emit_column_headers
   exclude_project_names
+  user_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Working_time.exec
       ~exclude_project_names
+      ~user_names
       (module R)
       begin_date
       end_date
@@ -117,12 +125,14 @@ let time_punch
   end_date
   emit_column_headers
   exclude_project_names
+  user_names
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Report.Time_punch.exec
       ~exclude_project_names
+      ~user_names
       (module R)
       begin_date
       end_date
@@ -141,11 +151,13 @@ let record
   project_name
   activity_name
   description
+  user_name
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
     K.Record.Record.exec
+      ~user_name
       (module R)
       begin_date_time
       end_date_time
@@ -174,6 +186,15 @@ let project_names =
      all projects. If given more than once, exports all the given projects."
   in
   C.Arg.(value @@ opt_all string [] @@ info [ "project" ] ~doc)
+;;
+
+let user_names =
+  let doc =
+    "Name of the user the timesheet is generated for. If not given, exports \
+     the user of the given APIKEY. If given more than once, exports all the \
+     users projects."
+  in
+  C.Arg.(value @@ opt_all string [] @@ info [ "user" ] ~doc)
 ;;
 
 let show_overall_duration =
@@ -242,7 +263,8 @@ let timesheet_t =
     $ project_names
     $ show_overall_duration
     $ emit_column_headers
-    $ prepend_project_name)
+    $ prepend_project_name
+    $ user_names)
 ;;
 
 let timesheet_cmd =
@@ -268,7 +290,8 @@ let percentage_t =
     $ begin_date
     $ end_date
     $ percentage_by_customers
-    $ exclude_project_names)
+    $ exclude_project_names
+    $ user_names)
 ;;
 
 let percentage_cmd =
@@ -286,7 +309,8 @@ let working_time_t =
     $ end_date
     $ show_overall_duration
     $ emit_column_headers
-    $ exclude_project_names)
+    $ exclude_project_names
+    $ user_names)
 ;;
 
 let working_time_cmd =
@@ -304,7 +328,8 @@ let records_t =
     $ end_date
     $ project_names
     $ exclude_project_names
-    $ emit_column_headers)
+    $ emit_column_headers
+    $ user_names)
 ;;
 
 let records_cmd =
@@ -321,7 +346,8 @@ let time_punch_t =
     $ begin_date
     $ end_date
     $ emit_column_headers
-    $ exclude_project_names)
+    $ exclude_project_names
+    $ user_names)
 ;;
 
 let time_punch_cmd =
@@ -362,6 +388,11 @@ let record_project_name =
   C.Arg.(required @@ opt (some string) None @@ info [ "project" ] ~doc)
 ;;
 
+let record_user_name =
+  let doc = "Name of the user the entry is recorded for." in
+  C.Arg.(value @@ opt (some string) None @@ info [ "user" ] ~doc)
+;;
+
 let record_activity_name =
   let doc = "Name of the activity of the entry." in
   C.Arg.(required @@ opt (some string) None @@ info [ "activity" ] ~doc)
@@ -381,7 +412,8 @@ let record_t =
     $ record_end_date_time
     $ record_project_name
     $ record_activity_name
-    $ record_description)
+    $ record_description
+    $ record_user_name)
 ;;
 
 let record_cmd =

@@ -3,7 +3,8 @@ module Record : sig
       timesheet entries between [begin_date] and [end_date] (inclusively) or a
       string error. *)
   val exec
-    :  (module Repo.S)
+    :  ?user_name:string option
+    -> (module Repo.S)
     -> string
     -> string
     -> string

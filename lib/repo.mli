@@ -26,12 +26,19 @@ module type S = sig
   (** [add_activity name] adds an activity and returns true or an error. *)
   val add_activity : string -> bool or_error
 
-  (** [find_timesheet begin_date end_date] is a list of all {!Entry.t} or an
+  (** [find_timesheet begin_date end_date user_ids] is a list of all {!Entry.t} or an
       error between the [begin_date] and [end_date], inclusively. *)
-  val find_timesheet : Date.t -> Date.t -> Entry.t list or_error
+  val find_timesheet : Date.t -> Date.t -> int list -> Entry.t list or_error
 
   (** adds an timesheet record *)
-  val add_timesheet : string -> string -> int -> int -> string -> bool or_error
+  val add_timesheet
+    :  ?user:int option
+    -> string
+    -> string
+    -> int
+    -> int
+    -> string
+    -> bool or_error
 end
 
 (** Implementation of a repo that, given a {!Api.REQUEST_CFG}, talks directly to
@@ -111,6 +118,14 @@ module Repo_utils
     -> 'a list
     -> string
     -> int option
+
+  (** [ids_by_names (module Elt) elems names] returns a tuple with a list of resolved
+      ids and a list of strings that it could not resolve. *)
+  val ids_by_names
+    :  (module Bi_lookup.Elt_sig with type t = 'a)
+    -> 'a list
+    -> string list
+    -> int list * string list
 
   (** [by_id (module Elt) elems id] is some elt from a list of elems where
       each elem is an Elt, identified by it's id. *)
