@@ -10,6 +10,7 @@ let or_error_string m =
 ;;
 
 module type S = sig
+  val find_users : unit -> User.t list or_error
   val find_customers : unit -> Customer.t list or_error
   val add_customer : string -> bool or_error
   val find_projects : unit -> Project.t list or_error
@@ -25,6 +26,10 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
 
   let run api_request =
     Api.run_request (module RC) api_request |> or_error_string
+  ;;
+
+  let find_users () =
+    D.list User.decoder |> Api.make_api_get_request "/users" |> run
   ;;
 
   let find_customers () =

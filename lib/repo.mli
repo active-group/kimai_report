@@ -5,6 +5,9 @@ type 'a or_error = ('a, string) result Lwt.t
 (** A repo, defined by a module implementing {!S}, serves as a source for
     generating reports. *)
 module type S = sig
+  (** [find_users ()] is a list of all {!User.t} or an error. *)
+  val find_users : unit -> User.t list or_error
+
   (** [find_customers ()] is a list of all {!Customer.t} or an error. *)
   val find_customers : unit -> Customer.t list or_error
 
