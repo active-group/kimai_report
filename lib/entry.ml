@@ -82,16 +82,16 @@ let encoder
   =
   let entry =
     `Assoc
-      [ "begin", `String begin_date_time
-      ; "end", `String end_date_time
-      ; "project", `Int project
-      ; "activity", `Int activity
-      ; "description", `String description
-      ; ( "user"
-        , match user with
-          | Some u -> `Int u
-          | None -> `Null )
-      ]
+      (List.append
+         [ "begin", `String begin_date_time
+         ; "end", `String end_date_time
+         ; "project", `Int project
+         ; "activity", `Int activity
+         ; "description", `String description
+         ]
+         (match user with
+          | Some u -> [ "user", `Int u ]
+          | None -> []))
   in
   Encoder.Yojson.Encoder.to_string entry
 ;;

@@ -62,6 +62,7 @@ module Record = struct
           | Ok activity_id ->
             let* is_success =
               R.add_timesheet
+                ~user:user_id_result
                 begin_date_time
                 end_date_time
                 project_id
