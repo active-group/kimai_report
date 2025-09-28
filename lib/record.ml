@@ -22,7 +22,11 @@ module Record = struct
     description
     =
     let ( let* ) = Api.bind in
-    let* users = R.find_users () in
+    let* users =
+      match user_name with
+      | None -> Lwt.return_ok []
+      | _ -> R.find_users ()
+    in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Hash) in
     let user_id_result =
       match user_name with

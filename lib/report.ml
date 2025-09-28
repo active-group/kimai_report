@@ -58,7 +58,11 @@ module Timesheet = struct
     in
     if [] == none_project_names
     then
-      let* users = R.find_users () in
+      let* users =
+        match user_names with
+        | [] -> Lwt.return_ok []
+        | _ -> R.find_users ()
+      in
       let some_user_ids, none_user_names =
         RU.ids_by_names (module User) users user_names
       in
@@ -162,7 +166,11 @@ module Records = struct
     in
     if [] == none_project_names && [] == none_excluded_project_names
     then
-      let* users = R.find_users () in
+      let* users =
+        match user_names with
+        | [] -> Lwt.return_ok []
+        | _ -> R.find_users ()
+      in
       let some_user_ids, none_user_names =
         RU.ids_by_names (module User) users user_names
       in
@@ -293,7 +301,11 @@ module Percentage = struct
     let ( let* ) = Api.bind in
     let* projects = R.find_projects () in
     let* customers = R.find_customers () in
-    let* users = R.find_users () in
+    let* users =
+      match user_names with
+      | [] -> Lwt.return_ok []
+      | _ -> R.find_users ()
+    in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
     let some_user_ids, none_user_names =
       RU.ids_by_names (module User) users user_names
@@ -377,7 +389,11 @@ module Working_time = struct
     end_date
     =
     let ( let* ) = Api.bind in
-    let* users = R.find_users () in
+    let* users =
+      match user_names with
+      | [] -> Lwt.return_ok []
+      | _ -> R.find_users ()
+    in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
     let some_user_ids, none_user_names =
       RU.ids_by_names (module User) users user_names
@@ -467,7 +483,11 @@ module Time_punch = struct
     end_date
     =
     let ( let* ) = Api.bind in
-    let* users = R.find_users () in
+    let* users =
+      match user_names with
+      | [] -> Lwt.return_ok []
+      | _ -> R.find_users ()
+    in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
     let some_user_ids, none_user_names =
       RU.ids_by_names (module User) users user_names
