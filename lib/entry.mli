@@ -1,5 +1,6 @@
 type t
 
+val id : t -> int
 val date : t -> Ptime.t
 val duration : t -> float
 val activity : t -> int option

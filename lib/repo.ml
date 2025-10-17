@@ -6,7 +6,7 @@ let or_error_string m =
   m
   >>= function
   | Error err -> Api.Response_error.show err |> Lwt.return_error
-  | Ok projects -> Lwt.return_ok projects
+  | Ok success -> Lwt.return_ok success
 ;;
 
 module type S = sig
@@ -27,6 +27,8 @@ module type S = sig
     -> int
     -> string
     -> bool or_error
+
+  val delete_timesheet : int -> bool or_error
 end
 
 module Cohttp (RC : Api.REQUEST_CFG) : S = struct
@@ -103,6 +105,12 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
             project
             activity
             description)
+    |> run
+  ;;
+
+  let delete_timesheet id =
+    D.return true
+    |> Api.make_api_delete_request (Printf.sprintf "%s/%d" "/timesheets" id)
     |> run
   ;;
 end

@@ -42,6 +42,7 @@ type body_encoder = Encoder.Yojson.Encoder.encoder
 type 'a request_method =
   | Get of 'a body_decoder
   | Post of (body_encoder * 'a body_decoder)
+  | Delete of 'a body_decoder
 
 type endpoint = string
 type request_args = (string * string) list
@@ -61,6 +62,10 @@ let make_api_get_request ?(args = []) endpoint body_decoder =
 
 let make_api_post_request ?(args = []) endpoint body_encoder body_decoder =
   make_api_request (Post (body_encoder, body_decoder)) endpoint args
+;;
+
+let make_api_delete_request ?(args = []) endpoint body_decoder =
+  make_api_request (Delete body_decoder) endpoint args
 ;;
 
 module Response_error = struct
@@ -86,7 +91,8 @@ let ( --> ) m json_body_fn =
   then (
     let decoded =
       lwt_string_body
-      >|= fun body -> Yojson.Safe.from_string body |> json_body_fn
+      >|= fun body ->
+      Yojson.Safe.from_string (if body = "" then "{}" else body) |> json_body_fn
     in
     decoded
     >>= fun maybe_decoded ->
@@ -132,7 +138,8 @@ let run_request (module RC : REQUEST_CFG) = function
      | Get body_decoder -> get_with_total_count headers uri --> body_decoder
      | Post (body_encoder, body_decoder) ->
        let body = encode_body body_encoder in
-       C.post ~body ~headers uri --> body_decoder)
+       C.post ~body ~headers uri --> body_decoder
+     | Delete body_decoder -> C.delete ~headers uri --> body_decoder)
 ;;
 
 let return x = Lwt.return_ok x

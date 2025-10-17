@@ -1,5 +1,6 @@
 type t =
-  { date : Ptime.t
+  { id : int
+  ; date : Ptime.t
   ; start_string : string
   ; end_string : string option
   ; duration : float
@@ -9,6 +10,7 @@ type t =
   ; user : int option
   }
 
+let id { id; _ } = id
 let date { date; _ } = date
 let project { project; _ } = project
 let duration { duration; _ } = duration
@@ -51,6 +53,7 @@ module D = Decoder.Yojson.Safe
 
 let decoder =
   let open D.Syntax in
+  let* id = D.field "id" D.int in
   let* date = D.field "begin" Api.timestamp_decoder in
   let* start_string = D.field "begin" D.string in
   let* end_string = D.optional @@ D.field "end" D.string in
@@ -61,7 +64,8 @@ let decoder =
   let* project = D.optional @@ D.field "project" D.int in
   let* user = D.optional @@ D.field "user" D.int in
   D.return
-    { date
+    { id
+    ; date
     ; start_string
     ; end_string
     ; duration

@@ -39,6 +39,9 @@ module type S = sig
     -> int
     -> string
     -> bool or_error
+
+  (** [delete_timesheet id] deletes a timesheet and returns true or an error. *)
+  val delete_timesheet : int -> bool or_error
 end
 
 (** Implementation of a repo that, given a {!Api.REQUEST_CFG}, talks directly to

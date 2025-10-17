@@ -55,6 +55,17 @@ val make_api_post_request
   -> 'a Decoder.Yojson.Safe.decoder
   -> 'a api_request
 
+(** [make_api_delete_request ~args endpoint decoder] is a new {!api_request}
+    against the provided [endpoint] unsing the HTTP-DELETE method. It decodes the
+    result using the provided [decoder]. Additional [~args] may be provided
+    which will be added as parameters to the request. The request must be run
+    via {!run_request}. *)
+val make_api_delete_request
+  :  ?args:(string * string) list
+  -> string
+  -> 'a Decoder.Yojson.Safe.decoder
+  -> 'a api_request
+
 (** [run_request (module Rc) req] actually runs the request [req], using the
     provided credentials in the request config [Rc].  The result is either a
     value of type [a] or a decoder error, wrapped in a {!Lwt.t} result. *)

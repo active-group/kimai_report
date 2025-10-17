@@ -170,6 +170,17 @@ let record
   | Ok _result -> ()
 ;;
 
+let delete api_url api_token begin_date_time end_date_time user_names =
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
+  let module R = K.Repo.Cohttp (RC) in
+  match
+    K.Delete.Delete.exec ~user_names (module R) begin_date_time end_date_time
+    |> Lwt_main.run
+  with
+  | Error err -> prerr_endline @@ "Error: " ^ err
+  | Ok _result -> ()
+;;
+
 let api_url =
   let doc = "The base url of the API endpoint you want to talk to." in
   C.Arg.(value @@ pos 0 string "" @@ info [] ~docv:"API_URL" ~doc)
@@ -422,6 +433,38 @@ let record_cmd =
   C.Cmd.v info record_t
 ;;
 
+let delete_begin_date =
+  let doc =
+    "The begin date of the date range to delete all records from. Format is \
+     `YYYY-mm-DD`."
+  in
+  C.Arg.(required @@ opt (some date) None @@ info [ "begin" ] ~doc)
+;;
+
+let delete_end_date =
+  let doc =
+    "The end date of the date range to delete all records from. Format is \
+     `YYYY-mm-DD`."
+  in
+  C.Arg.(required @@ opt (some date) None @@ info [ "end" ] ~doc)
+;;
+
+let delete_t =
+  C.Term.(
+    const delete
+    $ api_url
+    $ api_token
+    $ delete_begin_date
+    $ delete_end_date
+    $ user_names)
+;;
+
+let delete_cmd =
+  let doc = "Delete all records in given date range for given user." in
+  let info = C.Cmd.info "delete" ~doc in
+  C.Cmd.v info delete_t
+;;
+
 let main_cmd =
   let doc =
     "Interact with a Kimai instance for generating reports and recording \
@@ -437,6 +480,7 @@ let main_cmd =
     ; server_cmd
     ; record_cmd
     ; records_cmd
+    ; delete_cmd
     ]
 ;;
 
