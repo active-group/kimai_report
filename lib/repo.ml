@@ -17,7 +17,13 @@ module type S = sig
   val add_project : string -> int -> bool or_error
   val find_activities : unit -> Activity.t list or_error
   val add_activity : string -> bool or_error
-  val find_timesheet : Date.t -> Date.t -> int list -> Entry.t list or_error
+
+  val find_timesheet
+    :  Date.t
+    -> Date.t
+    -> int list
+    -> bool
+    -> Entry.t list or_error
 
   val add_timesheet
     :  ?user:int option
@@ -72,7 +78,7 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
     |> run
   ;;
 
-  let find_timesheet begin_date end_date user_ids =
+  let find_timesheet begin_date end_date user_ids all_users =
     D.list Entry.decoder
     |> Api.make_api_get_request
          ~args:
@@ -80,9 +86,12 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
               [ "begin", Date.to_html5_start_of_day_string begin_date
               ; "end", Date.to_html5_end_of_day_string end_date
               ]
-              (List.map
-                 (fun user_id -> "users[]", string_of_int user_id)
-                 user_ids))
+              (match all_users with
+               | true -> [ "user", "all" ]
+               | false ->
+                 List.map
+                   (fun user_id -> "users[]", string_of_int user_id)
+                   user_ids))
        @@ "/timesheets"
     |> run
   ;;

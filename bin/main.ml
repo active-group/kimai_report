@@ -17,6 +17,7 @@ let timesheet
   emit_column_headers
   prepend_project_name
   user_names
+  all_users
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -25,6 +26,7 @@ let timesheet
       ~project_names
       ~prepend_project_name
       ~user_names
+      ~all_users
       (module R)
       begin_date
       end_date
@@ -47,6 +49,7 @@ let records
   exclude_project_names
   emit_column_headers
   user_names
+  all_users
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -55,6 +58,7 @@ let records
       ~project_names
       ~exclude_project_names
       ~user_names
+      ~all_users
       (module R)
       begin_date
       end_date
@@ -72,6 +76,7 @@ let percentage
   by_customers
   exclude_project_names
   user_names
+  all_users
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -80,6 +85,7 @@ let percentage
       ~by_customers
       ~exclude_project_names
       ~user_names
+      ~all_users
       (module R)
       begin_date
       end_date
@@ -98,6 +104,7 @@ let working_time
   emit_column_headers
   exclude_project_names
   user_names
+  all_users
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -105,6 +112,7 @@ let working_time
     K.Report.Working_time.exec
       ~exclude_project_names
       ~user_names
+      ~all_users
       (module R)
       begin_date
       end_date
@@ -126,6 +134,7 @@ let time_punch
   emit_column_headers
   exclude_project_names
   user_names
+  all_users
   =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
@@ -133,6 +142,7 @@ let time_punch
     K.Report.Time_punch.exec
       ~exclude_project_names
       ~user_names
+      ~all_users
       (module R)
       begin_date
       end_date
@@ -170,11 +180,16 @@ let record
   | Ok _result -> ()
 ;;
 
-let delete api_url api_token begin_date_time end_date_time user_names =
+let delete api_url api_token begin_date_time end_date_time user_names all_users =
   let module RC = (val K.Api.make_request_cfg api_url api_token) in
   let module R = K.Repo.Cohttp (RC) in
   match
-    K.Delete.Delete.exec ~user_names (module R) begin_date_time end_date_time
+    K.Delete.Delete.exec
+      ~user_names
+      ~all_users
+      (module R)
+      begin_date_time
+      end_date_time
     |> Lwt_main.run
   with
   | Error err -> prerr_endline @@ "Error: " ^ err
@@ -206,6 +221,14 @@ let user_names =
      users projects."
   in
   C.Arg.(value @@ opt_all string [] @@ info [ "user" ] ~doc)
+;;
+
+let all_users =
+  let doc =
+    "Whether or not to query all users.  This setting overrides the `--user` \
+     settings."
+  in
+  C.Arg.(value @@ flag @@ info [ "all_users" ] ~doc)
 ;;
 
 let show_overall_duration =
@@ -275,7 +298,8 @@ let timesheet_t =
     $ show_overall_duration
     $ emit_column_headers
     $ prepend_project_name
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let timesheet_cmd =
@@ -302,7 +326,8 @@ let percentage_t =
     $ end_date
     $ percentage_by_customers
     $ exclude_project_names
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let percentage_cmd =
@@ -321,7 +346,8 @@ let working_time_t =
     $ show_overall_duration
     $ emit_column_headers
     $ exclude_project_names
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let working_time_cmd =
@@ -340,7 +366,8 @@ let records_t =
     $ project_names
     $ exclude_project_names
     $ emit_column_headers
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let records_cmd =
@@ -358,7 +385,8 @@ let time_punch_t =
     $ end_date
     $ emit_column_headers
     $ exclude_project_names
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let time_punch_cmd =
@@ -456,7 +484,8 @@ let delete_t =
     $ api_token
     $ delete_begin_date
     $ delete_end_date
-    $ user_names)
+    $ user_names
+    $ all_users)
 ;;
 
 let delete_cmd =

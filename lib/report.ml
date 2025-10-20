@@ -45,6 +45,7 @@ module Timesheet = struct
     ?(project_names = [])
     ?(prepend_project_name = false)
     ?(user_names = [])
+    ?(all_users = false)
     (module R : Repo.S)
     begin_date
     end_date
@@ -68,7 +69,9 @@ module Timesheet = struct
       in
       if [] == none_user_names
       then
-        let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+        let* timesheet =
+          R.find_timesheet begin_date end_date some_user_ids all_users
+        in
         timesheet
         |> List.filter (projects_matches some_project_ids)
         |> List.map
@@ -148,6 +151,7 @@ module Records = struct
     ?(project_names = [])
     ?(exclude_project_names = [])
     ?(user_names = [])
+    ?(all_users = false)
     (module R : Repo.S)
     begin_date
     end_date
@@ -176,7 +180,9 @@ module Records = struct
       in
       if [] == none_user_names
       then
-        let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+        let* timesheet =
+          R.find_timesheet begin_date end_date some_user_ids all_users
+        in
         timesheet
         |> List.filter (projects_matches some_project_ids true)
         |> List.filter (fun entry ->
@@ -294,6 +300,7 @@ module Percentage = struct
     ?(by_customers = false)
     ?(exclude_project_names = [])
     ?(user_names = [])
+    ?(all_users = false)
     (module R : Repo.S)
     begin_date
     end_date
@@ -312,7 +319,9 @@ module Percentage = struct
     in
     if [] == none_user_names
     then
-      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let* timesheet =
+        R.find_timesheet begin_date end_date some_user_ids all_users
+      in
       let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
       let some_project_ids, _ =
         RU.ids_by_names (module Project) projects exclude_project_names
@@ -384,6 +393,7 @@ module Working_time = struct
   let exec
     ?(exclude_project_names = [])
     ?(user_names = [])
+    ?(all_users = false)
     (module R : Repo.S)
     begin_date
     end_date
@@ -400,7 +410,9 @@ module Working_time = struct
     in
     if [] == none_user_names
     then
-      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let* timesheet =
+        R.find_timesheet begin_date end_date some_user_ids all_users
+      in
       let* projects = R.find_projects () in
       let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
       let some_project_ids, _ =
@@ -478,6 +490,7 @@ module Time_punch = struct
   let exec
     ?(exclude_project_names = [])
     ?(user_names = [])
+    ?(all_users = false)
     (module R : Repo.S)
     begin_date
     end_date
@@ -494,7 +507,9 @@ module Time_punch = struct
     in
     if [] == none_user_names
     then
-      let* timesheet = R.find_timesheet begin_date end_date some_user_ids in
+      let* timesheet =
+        R.find_timesheet begin_date end_date some_user_ids all_users
+      in
       let* projects = R.find_projects () in
       let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
       let some_project_ids, _ =

@@ -6,6 +6,7 @@ module Timesheet : sig
     :  ?project_names:string list
     -> ?prepend_project_name:bool
     -> ?user_names:string list
+    -> ?all_users:bool
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -33,6 +34,7 @@ module Records : sig
     :  ?project_names:string list
     -> ?exclude_project_names:string list
     -> ?user_names:string list
+    -> ?all_users:bool
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -50,6 +52,7 @@ module Percentage : sig
     :  ?by_customers:bool
     -> ?exclude_project_names:string list
     -> ?user_names:string list
+    -> ?all_users:bool
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -68,6 +71,7 @@ module Working_time : sig
   val exec
     :  ?exclude_project_names:string list
     -> ?user_names:string list
+    -> ?all_users:bool
     -> (module Repo.S)
     -> Date.t
     -> Date.t
@@ -94,6 +98,7 @@ module Time_punch : sig
   val exec
     :  ?exclude_project_names:string list
     -> ?user_names:string list
+    -> ?all_users:bool
     -> (module Repo.S)
     -> Date.t
     -> Date.t

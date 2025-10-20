@@ -1,5 +1,11 @@
 module Delete = struct
-  let exec ?(user_names = []) (module R : Repo.S) begin_date end_date =
+  let exec
+    ?(user_names = [])
+    ?(all_users = false)
+    (module R : Repo.S)
+    begin_date
+    end_date
+    =
     let ( let* ) = Api.bind in
     let ( let** ) = Lwt.bind in
     let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
@@ -13,7 +19,9 @@ module Delete = struct
     in
     if [] == none_user_names
     then
-      let* entries = R.find_timesheet begin_date end_date some_user_ids in
+      let* entries =
+        R.find_timesheet begin_date end_date some_user_ids all_users
+      in
       let** errors =
         Lwt_list.filter_map_s
           (fun entry ->

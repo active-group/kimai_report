@@ -28,7 +28,12 @@ module type S = sig
 
   (** [find_timesheet begin_date end_date user_ids] is a list of all {!Entry.t} or an
       error between the [begin_date] and [end_date], inclusively. *)
-  val find_timesheet : Date.t -> Date.t -> int list -> Entry.t list or_error
+  val find_timesheet
+    :  Date.t
+    -> Date.t
+    -> int list
+    -> bool
+    -> Entry.t list or_error
 
   (** adds an timesheet record *)
   val add_timesheet
