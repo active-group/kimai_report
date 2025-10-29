@@ -32,8 +32,16 @@ let time_string_from_timestamp s =
   | _ :: x :: _ -> String.sub x 0 8
 ;;
 
+let local_offset_s () =
+  let now = Unix.time () in
+  let utc_epoch = fst (Unix.gmtime now |> Unix.mktime) in
+  let local_epoch = fst (Unix.localtime now |> Unix.mktime) in
+  int_of_float (local_epoch -. utc_epoch)
+;;
+
 let date_string { date; _ } =
-  Ptime.to_rfc3339 date |> date_string_from_timestamp
+  let local_offset = local_offset_s () in
+  Ptime.to_rfc3339 date ~tz_offset_s:local_offset |> date_string_from_timestamp
 ;;
 
 let start_time_string { start_string; _ } =
