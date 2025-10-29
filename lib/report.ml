@@ -484,6 +484,47 @@ module Time_punch = struct
 
   let start_time { start_time; _ } = start_time
   let end_time { end_time; _ } = end_time
+  let compare_by f a b = compare (f a) (f b)
+  let is_earlier t1 t2 = compare t1 t2 <= 0
+  let is_later t1 t2 = compare t2 t1 <= 0
+
+  let print_tap_list f l =
+    let ( % ) f g x = f (g x) in
+    List.iter (print_endline % f) l;
+    print_newline ();
+    l
+  ;;
+
+  let show_time_punch t =
+    Printf.sprintf
+      "{ start_time = %S; end_time = %s }"
+      (start_time t)
+      (end_time t)
+  ;;
+
+  let merge_time_ranges ranges =
+    let sorted = List.sort (compare_by start_time) ranges in
+    let rec aux acc = function
+      | [] -> List.rev acc
+      | x :: xs ->
+        (match acc with
+         | [] -> aux [ x ] xs
+         | last :: rest ->
+           if is_earlier (start_time x) (end_time last)
+           then (
+             (* Overlapping or adjacent → merge *)
+             let merged_end =
+               if is_later (end_time x) (end_time last)
+               then end_time x
+               else end_time last
+             in
+             let merged = { last with end_time = merged_end } in
+             aux (merged :: rest) xs)
+           else (* Non-overlapping → add new *)
+             aux (x :: acc) xs)
+    in
+    aux [] sorted
+  ;;
 
   module SM = Map.Make (String)
 
@@ -519,21 +560,14 @@ module Time_punch = struct
       |> List.filter (fun entry ->
         not (Percentage.projects_matches some_project_ids entry))
       |> List.filter (fun entry -> Option.is_some (Entry.end_string entry))
-      |> List.sort compare
-      |> List.fold_left
-           (fun mp entry ->
-             let k_start = Entry.start_string entry in
-             let k_end = Option.value (Entry.end_string entry) ~default:"" in
-             match SM.find_opt k_start mp with
-             | Some { start_time; _ } ->
-               mp
-               |> SM.remove k_start
-               |> SM.add k_end { start_time; end_time = k_end }
-             | None ->
-               mp |> SM.add k_end { start_time = k_start; end_time = k_end })
-           SM.empty
-      |> SM.bindings
-      |> List.map (fun (_, block) -> block)
+      |> List.sort (compare_by Entry.start_string)
+      |> List.map (fun entry ->
+        { start_time = Entry.start_string entry
+        ; end_time = Option.get @@ Entry.end_string entry
+        })
+      (* |> print_tap_list show_time_punch *)
+      |> merge_time_ranges
+      (* |> print_tap_list show_time_punch *)
       |> Lwt.return_ok
     else
       Lwt.return_error
