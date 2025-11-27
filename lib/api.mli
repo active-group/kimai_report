@@ -28,6 +28,7 @@ module Response_error : sig
   type t =
     | Http_error of (int * string)
     | Json_decoder_error of Decoder.Yojson.Safe.Error.t
+    | Pagination_error of int
 
   val show : t -> string
 end
