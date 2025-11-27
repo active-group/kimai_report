@@ -488,19 +488,19 @@ module Time_punch = struct
   let is_earlier t1 t2 = compare t1 t2 <= 0
   let is_later t1 t2 = compare t2 t1 <= 0
 
-  let print_tap_list f l =
-    let ( % ) f g x = f (g x) in
-    List.iter (print_endline % f) l;
-    print_newline ();
-    l
-  ;;
+  (* let print_tap_list f l = *)
+  (*   let ( % ) f g x = f (g x) in *)
+  (*   List.iter (print_endline % f) l; *)
+  (*   print_newline (); *)
+  (*   l *)
+  (* ;; *)
 
-  let show_time_punch t =
-    Printf.sprintf
-      "{ start_time = %S; end_time = %s }"
-      (start_time t)
-      (end_time t)
-  ;;
+  (* let show_time_punch t = *)
+  (*   Printf.sprintf *)
+  (*     "{ start_time = %S; end_time = %s }" *)
+  (*     (start_time t) *)
+  (*     (end_time t) *)
+  (* ;; *)
 
   let merge_time_ranges ranges =
     let sorted = List.sort (compare_by start_time) ranges in
