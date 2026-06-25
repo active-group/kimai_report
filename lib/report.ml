@@ -582,3 +582,71 @@ module Time_punch = struct
       Printf.printf "\"%s\",\"%s\"\n" (start_time block) (end_time block))
   ;;
 end
+
+module Fetch_absences = struct
+  type t =
+    { start_date : string
+    ; end_date : string
+    ; half_day : bool
+    ; kind : string
+    ; comment : string
+    }
+
+  let start_date { start_date; _ } = start_date
+  let end_date { end_date; _ } = end_date
+  let half_day { half_day; _ } = half_day
+  let kind { kind; _ } = kind
+  let comment { comment; _ } = comment
+
+  let exec ?(user_name = None) (module R : Repo.S) begin_date end_date =
+    let ( let* ) = Api.bind in
+    let* users =
+      match user_name with
+      | None -> Lwt.return_ok []
+      | _ -> R.find_users ()
+    in
+    let module RU = Repo.Repo_utils (R) (Repo.Bi_lookup.Map) in
+    let user_id_result =
+      match user_name with
+      | Some user_name -> RU.id_by_name (module User) users user_name
+      | None -> None
+    in
+    let user_id_error =
+      match user_name with
+      | None -> Result.ok 0
+      | Some user_name ->
+        Option.to_result
+          user_id_result
+          ~none:(Printf.sprintf "User %s does not exist" user_name)
+    in
+    match user_id_error with
+    | Ok _ ->
+      let* absences = R.find_absences begin_date end_date user_id_result in
+      absences
+      |> List.map (fun absence ->
+        { start_date = Absence.start_string absence
+        ; end_date = Option.value (Absence.end_string absence) ~default:""
+        ; half_day = Absence.half_day absence
+        ; kind = Absence.kind absence
+        ; comment = Option.value (Absence.comment absence) ~default:""
+        })
+      |> Lwt.return_ok
+    | Error error -> Lwt.return_error error
+  ;;
+
+  (* RFC 4180: escape double-quotes by doubling them *)
+  let escape_double_quotes s = Str.global_replace (Str.regexp {|\"|}) "\"\"" s
+
+  let print_csv emit_column_headers =
+    if emit_column_headers
+    then Printf.printf "\"Start\",\"End\",\"HalfDay\",\"Kind\",\"Comment\"\n";
+    List.iter (fun absence ->
+      Printf.printf
+        "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n"
+        (start_date absence)
+        (end_date absence)
+        (string_of_bool (half_day absence))
+        (kind absence)
+        (escape_double_quotes (comment absence)))
+  ;;
+end

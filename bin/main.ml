@@ -196,6 +196,24 @@ let delete api_url api_token begin_date_time end_date_time user_names all_users 
   | Ok _result -> ()
 ;;
 
+let fetch_absences
+  api_url
+  api_token
+  begin_date
+  end_date
+  emit_column_headers
+  user_name
+  =
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
+  let module R = K.Repo.Cohttp (RC) in
+  match
+    K.Report.Fetch_absences.exec ~user_name (module R) begin_date end_date
+    |> Lwt_main.run
+  with
+  | Error err -> prerr_endline @@ "Error: " ^ err
+  | Ok records -> K.Report.Fetch_absences.print_csv emit_column_headers records
+;;
+
 let api_url =
   let doc = "The base url of the API endpoint you want to talk to." in
   C.Arg.(value @@ pos 0 string "" @@ info [] ~docv:"API_URL" ~doc)
@@ -494,6 +512,23 @@ let delete_cmd =
   C.Cmd.v info delete_t
 ;;
 
+let fetch_absences_t =
+  C.Term.(
+    const fetch_absences
+    $ api_url
+    $ api_token
+    $ begin_date
+    $ end_date
+    $ emit_column_headers
+    $ record_user_name)
+;;
+
+let fetch_absences_cmd =
+  let doc = "Generate csv with absences." in
+  let info = C.Cmd.info "fetch_absences" ~doc in
+  C.Cmd.v info fetch_absences_t
+;;
+
 let main_cmd =
   let doc =
     "Interact with a Kimai instance for generating reports and recording \
@@ -510,6 +545,7 @@ let main_cmd =
     ; record_cmd
     ; records_cmd
     ; delete_cmd
+    ; fetch_absences_cmd
     ]
 ;;
 

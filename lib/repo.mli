@@ -26,6 +26,17 @@ module type S = sig
   (** [add_activity name] adds an activity and returns true or an error. *)
   val add_activity : string -> bool or_error
 
+  val find_absences : Date.t -> Date.t -> int option -> Absence.t list or_error
+
+  val add_absence
+    :  ?user:int option
+    -> ?half_day:bool
+    -> string
+    -> string
+    -> string
+    -> string
+    -> bool or_error
+
   (** [find_timesheet begin_date end_date user_ids] is a list of all {!Entry.t} or an
       error between the [begin_date] and [end_date], inclusively. *)
   val find_timesheet

@@ -17,6 +17,16 @@ module type S = sig
   val add_project : string -> int -> bool or_error
   val find_activities : unit -> Activity.t list or_error
   val add_activity : string -> bool or_error
+  val find_absences : Date.t -> Date.t -> int option -> Absence.t list or_error
+
+  val add_absence
+    :  ?user:int option
+    -> ?half_day:bool
+    -> string
+    -> string
+    -> string
+    -> string
+    -> bool or_error
 
   val find_timesheet
     :  Date.t
@@ -75,6 +85,42 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
   let add_activity name =
     D.return true
     |> Api.make_api_post_request "/activities" (Activity.encoder name)
+    |> run
+  ;;
+
+  let find_absences begin_date end_date user_id =
+    D.list Absence.decoder
+    |> Api.make_api_get_request
+         ~args:
+           (List.append
+              [ "begin", Date.to_html5_start_of_day_string begin_date
+              ; "end", Date.to_html5_start_of_day_string end_date
+              ]
+              (match user_id with
+               | Some id -> [ "user", string_of_int id ]
+               | None -> []))
+       @@ "/absences"
+    |> run
+  ;;
+
+  let add_absence
+    ?(user = None)
+    ?(half_day = false)
+    begin_date_time
+    end_date_time
+    kind
+    comment
+    =
+    D.return true
+    |> Api.make_api_post_request
+         "/absences"
+         (Absence.encoder
+            ~user
+            ~half_day
+            begin_date_time
+            end_date_time
+            kind
+            comment)
     |> run
   ;;
 

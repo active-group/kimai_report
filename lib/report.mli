@@ -107,3 +107,16 @@ module Time_punch : sig
   (** [print_csv pairs] prints all working-time entries to stdout. *)
   val print_csv : bool -> t list -> unit
 end
+
+module Fetch_absences : sig
+  type t
+
+  val exec
+    :  ?user_name:string option
+    -> (module Repo.S)
+    -> Date.t
+    -> Date.t
+    -> t list Repo.or_error
+
+  val print_csv : bool -> t list -> unit
+end
