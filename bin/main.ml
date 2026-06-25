@@ -214,6 +214,33 @@ let fetch_absences
   | Ok records -> K.Report.Fetch_absences.print_csv emit_column_headers records
 ;;
 
+let create_absence
+  api_url
+  api_token
+  begin_date
+  end_date
+  half_day
+  kind
+  comment
+  user_name
+  =
+  let module RC = (val K.Api.make_request_cfg api_url api_token) in
+  let module R = K.Repo.Cohttp (RC) in
+  match
+    K.Record.Absence.exec
+      ~user_name
+      ~half_day
+      ~end_date
+      ~comment
+      (module R)
+      begin_date
+      kind
+    |> Lwt_main.run
+  with
+  | Error err -> prerr_endline @@ "Error: " ^ err
+  | Ok _result -> ()
+;;
+
 let api_url =
   let doc = "The base url of the API endpoint you want to talk to." in
   C.Arg.(value @@ pos 0 string "" @@ info [] ~docv:"API_URL" ~doc)
@@ -512,6 +539,11 @@ let delete_cmd =
   C.Cmd.v info delete_t
 ;;
 
+let absence_user_name =
+  let doc = "Name of the user the absence is recorded for." in
+  C.Arg.(value @@ opt (some string) None @@ info [ "user" ] ~doc)
+;;
+
 let fetch_absences_t =
   C.Term.(
     const fetch_absences
@@ -520,13 +552,57 @@ let fetch_absences_t =
     $ begin_date
     $ end_date
     $ emit_column_headers
-    $ record_user_name)
+    $ absence_user_name)
 ;;
 
 let fetch_absences_cmd =
   let doc = "Generate csv with absences." in
   let info = C.Cmd.info "fetch_absences" ~doc in
   C.Cmd.v info fetch_absences_t
+;;
+
+let absence_begin_date =
+  let doc = "The begin date of an absence. Format is `YYYY-mm-DD`." in
+  C.Arg.(required @@ opt (some string) None @@ info [ "begin" ] ~doc)
+;;
+
+let absence_end_date =
+  let doc = "The optional end date of an absence. Format is `YYYY-mm-DD`." in
+  C.Arg.(value @@ opt (some string) None @@ info [ "end" ] ~doc)
+;;
+
+let absence_half_day =
+  let doc = "Kind of an absence." in
+  C.Arg.(value @@ opt bool false @@ info [ "half-day" ] ~doc)
+;;
+
+let absence_kind =
+  let doc = "Kind of an absence." in
+  C.Arg.(required @@ opt (some string) None @@ info [ "kind" ] ~doc)
+;;
+
+let absence_comment =
+  let doc = "Comment of an absence." in
+  C.Arg.(value @@ opt (some string) None @@ info [ "comment" ] ~doc)
+;;
+
+let create_absence_t =
+  C.Term.(
+    const create_absence
+    $ api_url
+    $ api_token
+    $ absence_begin_date
+    $ absence_end_date
+    $ absence_half_day
+    $ absence_kind
+    $ absence_comment
+    $ absence_user_name)
+;;
+
+let create_absence_cmd =
+  let doc = "Record an absence entry." in
+  let info = C.Cmd.info "create_absence" ~doc in
+  C.Cmd.v info create_absence_t
 ;;
 
 let main_cmd =
@@ -546,6 +622,7 @@ let main_cmd =
     ; records_cmd
     ; delete_cmd
     ; fetch_absences_cmd
+    ; create_absence_cmd
     ]
 ;;
 

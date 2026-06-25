@@ -43,6 +43,7 @@ type 'a request_method =
   | Get of 'a body_decoder
   | Post of (body_encoder * 'a body_decoder)
   | Delete of 'a body_decoder
+  | Patch of 'a body_decoder
 
 type endpoint = string
 type request_args = (string * string) list
@@ -66,6 +67,10 @@ let make_api_post_request ?(args = []) endpoint body_encoder body_decoder =
 
 let make_api_delete_request ?(args = []) endpoint body_decoder =
   make_api_request (Delete body_decoder) endpoint args
+;;
+
+let make_api_patch_request ?(args = []) endpoint body_decoder =
+  make_api_request (Patch body_decoder) endpoint args
 ;;
 
 module Response_error = struct
@@ -195,5 +200,6 @@ let run_request (module RC : REQUEST_CFG) = function
      | Post (body_encoder, body_decoder) ->
        let body = encode_body body_encoder in
        C.post ~body ~headers uri --> body_decoder
-     | Delete body_decoder -> C.delete ~headers uri --> body_decoder)
+     | Delete body_decoder -> C.delete ~headers uri --> body_decoder
+     | Patch body_decoder -> C.patch ~headers uri --> body_decoder)
 ;;

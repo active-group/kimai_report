@@ -30,19 +30,28 @@ let decoder =
   D.return { id; start_string; end_string; half_day; kind; comment; user }
 ;;
 
-let encoder ?(user = None) ?(half_day = false) start_date end_date kind comment =
+let encoder
+  ?(half_day = false)
+  ?(end_date = None)
+  ?(comment = None)
+  user_id
+  start_date
+  kind
+  =
   let absence =
     `Assoc
-      (List.append
-         [ "date", `String start_date
-         ; "end", `String end_date
-         ; "halfDay", `Bool half_day
-         ; "type", `String kind
-         ; "comment", `String comment
-         ]
-         (match user with
-          | Some u -> [ "user", `Int u ]
-          | None -> []))
+      ([ "user", `Int user_id
+       ; "date", `String start_date
+       ; "halfDay", `Bool half_day
+       ; "type", `String kind
+       ]
+       @ (match end_date with
+          | Some e -> [ "end", `String e ]
+          | None -> [])
+       @
+       match comment with
+       | Some c -> [ "comment", `String c ]
+       | None -> [])
   in
   Encoder.Yojson.Encoder.to_string absence
 ;;

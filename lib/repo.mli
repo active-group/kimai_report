@@ -8,6 +8,8 @@ module type S = sig
   (** [find_users ()] is a list of all {!User.t} or an error. *)
   val find_users : unit -> User.t list or_error
 
+  val current_user : unit -> User.t or_error
+
   (** [find_customers ()] is a list of all {!Customer.t} or an error. *)
   val find_customers : unit -> Customer.t list or_error
 
@@ -29,13 +31,15 @@ module type S = sig
   val find_absences : Date.t -> Date.t -> int option -> Absence.t list or_error
 
   val add_absence
-    :  ?user:int option
-    -> ?half_day:bool
+    :  ?half_day:bool
+    -> ?end_date:string option
+    -> ?comment:string option
+    -> int
     -> string
     -> string
-    -> string
-    -> string
-    -> bool or_error
+    -> Absence.t list or_error
+
+  val approve_absence : int -> bool or_error
 
   (** [find_timesheet begin_date end_date user_ids] is a list of all {!Entry.t} or an
       error between the [begin_date] and [end_date], inclusively. *)

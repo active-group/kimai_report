@@ -11,6 +11,7 @@ let or_error_string m =
 
 module type S = sig
   val find_users : unit -> User.t list or_error
+  val current_user : unit -> User.t or_error
   val find_customers : unit -> Customer.t list or_error
   val add_customer : string -> bool or_error
   val find_projects : unit -> Project.t list or_error
@@ -20,13 +21,15 @@ module type S = sig
   val find_absences : Date.t -> Date.t -> int option -> Absence.t list or_error
 
   val add_absence
-    :  ?user:int option
-    -> ?half_day:bool
+    :  ?half_day:bool
+    -> ?end_date:string option
+    -> ?comment:string option
+    -> int
     -> string
     -> string
-    -> string
-    -> string
-    -> bool or_error
+    -> Absence.t list or_error
+
+  val approve_absence : int -> bool or_error
 
   val find_timesheet
     :  Date.t
@@ -56,6 +59,10 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
 
   let find_users () =
     D.list User.decoder |> Api.make_api_get_request "/users" |> run
+  ;;
+
+  let current_user () =
+    User.decoder |> Api.make_api_get_request "/users/me" |> run
   ;;
 
   let find_customers () =
@@ -104,23 +111,23 @@ module Cohttp (RC : Api.REQUEST_CFG) : S = struct
   ;;
 
   let add_absence
-    ?(user = None)
     ?(half_day = false)
-    begin_date_time
-    end_date_time
+    ?(end_date = None)
+    ?(comment = None)
+    user_id
+    begin_date
     kind
-    comment
     =
-    D.return true
+    D.list Absence.decoder
     |> Api.make_api_post_request
          "/absences"
-         (Absence.encoder
-            ~user
-            ~half_day
-            begin_date_time
-            end_date_time
-            kind
-            comment)
+         (Absence.encoder ~half_day ~comment ~end_date user_id begin_date kind)
+    |> run
+  ;;
+
+  let approve_absence id =
+    D.return true
+    |> Api.make_api_patch_request (Printf.sprintf "/absences/%d/confirm" id)
     |> run
   ;;
 

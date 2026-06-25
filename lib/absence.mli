@@ -10,10 +10,10 @@ val user : t -> int
 val decoder : t Decoder.Yojson.Safe.decoder
 
 val encoder
-  :  ?user:int option
-  -> ?half_day:bool
-  -> string
-  -> string
+  :  ?half_day:bool
+  -> ?end_date:string option
+  -> ?comment:string option
+  -> int
   -> string
   -> string
   -> Encoder.Yojson.Encoder.encoder

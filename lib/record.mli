@@ -12,3 +12,15 @@ module Record : sig
     -> string
     -> (bool, string) result Lwt.t
 end
+
+module Absence : sig
+  val exec
+    :  ?user_name:string option
+    -> ?half_day:bool
+    -> ?comment:string option
+    -> ?end_date:string option
+    -> (module Repo.S)
+    -> string
+    -> string
+    -> (bool, string) result Lwt.t
+end

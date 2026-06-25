@@ -67,6 +67,12 @@ val make_api_delete_request
   -> 'a Decoder.Yojson.Safe.decoder
   -> 'a api_request
 
+val make_api_patch_request
+  :  ?args:(string * string) list
+  -> string
+  -> 'a Decoder.Yojson.Safe.decoder
+  -> 'a api_request
+
 (** [run_request (module Rc) req] actually runs the request [req], using the
     provided credentials in the request config [Rc].  The result is either a
     value of type [a] or a decoder error, wrapped in a {!Lwt.t} result. *)
