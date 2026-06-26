@@ -577,7 +577,10 @@ let absence_half_day =
 ;;
 
 let absence_kind =
-  let doc = "Kind of an absence." in
+  let doc =
+    "Kind of an absence: one of `holiday` `time_off` `sickness` \
+     `sickness_child` `other` `parental` `unpaid_vacation`."
+  in
   C.Arg.(required @@ opt (some string) None @@ info [ "kind" ] ~doc)
 ;;
 
